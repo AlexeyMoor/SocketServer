@@ -3,18 +3,15 @@ package ait.socket.server.task;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.Socket;
-import java.net.SocketException;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
+import java.util.concurrent.BlockingQueue;
 
 public class ChatServerReceiver implements Runnable {
+    private final BlockingQueue<String> messages;
     private final Socket socket;
-    private String clientName;
 
-    public ChatServerReceiver(Socket socket) {
+    public ChatServerReceiver(Socket socket, BlockingQueue<String> messages) {
+        this.messages = messages;
         this.socket = socket;
     }
 
@@ -22,31 +19,18 @@ public class ChatServerReceiver implements Runnable {
     public void run() {
         try (socket) {
             BufferedReader socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter socketWriter = new PrintWriter(socket.getOutputStream(), true);
-
-            clientName = socketReader.readLine();
-            if (clientName == null || clientName.isBlank()) {
-                System.out.println("The client connected without a name and will be disconnected.");
-                return;
-            }
-            System.out.println(clientName + " connected.");
-
-            String message;
-            while ((message = socketReader.readLine()) != null) {
-                if ("exit".equalsIgnoreCase(message)) {
+            while (true) {
+                String message = socketReader.readLine();
+                if (message == null) {
+                    System.out.println("Connection: " + socket.getInetAddress() + ":" + socket.getPort() + ", closed by client.");
                     break;
                 }
-                String formattedTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-                String response = formattedTime + " [" + clientName + "]: " + message;
-                System.out.println(formattedTime + " [" + clientName + "]: " + message);
-                socketWriter.println(response);
+                messages.put(message);
             }
-        } catch (SocketException e) {
-            System.out.println("Connection with " + clientName + " was reset.");
         } catch (IOException e) {
-            System.out.println("An error occurred with client " + clientName + ": " + e.getMessage());
-        } finally {
-            System.out.println(clientName + " disconnected.");
+            System.out.println("Connection closed.");
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 }
