@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 public class ChatServerReceiver implements Runnable {
@@ -35,7 +36,7 @@ public class ChatServerReceiver implements Runnable {
                 if ("exit".equalsIgnoreCase(message)) {
                     break;
                 }
-                String formattedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+                String formattedTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
                 String response = formattedTime + " [" + clientName + "]: " + message;
                 System.out.println(formattedTime + " [" + clientName + "]: " + message);
                 socketWriter.println(response);
